@@ -2,7 +2,8 @@ from argparse import ArgumentParser
 
 from mcts.node import (
     Node,
-    Context
+    Context,
+    root_node
 )
 
 from mcts.runner import (
@@ -20,26 +21,18 @@ def mcts_demo():
     rewarder = TestRewarder()
     runner = MCTSRunner(
         root=Node(
-            context=Context(
-                key='gen',
-                content="0"
-            )
+            context=root_node()
         ),
         generator=generator,
         rewarder=rewarder,
-        sampling_method="epsilon"
+        sampling_method="v-epsilon",
+        epsilon = 0.4
     )
     runner.run(
-        n_rollouts=100,
-        n_exp=5,
+        n_rollouts=20,
+        n_exp=3,
         terminal_func=lambda contexts: sum(int(context.content) for context in contexts) >= len(rewarder.path)
     )
-    best_rollout = runner.best_rollout
-    reward = best_rollout["reward"]
-    contexts = best_rollout["rollout"]
-    for context in contexts:
-        print(context)
-    print(f"Final reward = {reward}")
 
 
 def main():

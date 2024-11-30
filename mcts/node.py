@@ -7,8 +7,8 @@ import random
 
 class Context:
     def __init__(self,
-                 key: Literal["reasoning", "rag", "gen", "refine", "terminate"],
-                 content: str
+                 key: Literal["root", "reasoning", "rag", "gen", "refine", "terminate"],
+                 content: str = ""
                  ):
         self.key = key
         self.content = content
@@ -18,6 +18,10 @@ class Context:
             f"[{self.key}]\n"
             f"{self.content}\n"
         )
+
+def root_node() -> Context:
+    return Context(key='root')
+
 
 class Node:
     def __init__(self, context: Context, parent: 'Node' = None, depth: int = 0):
@@ -53,3 +57,10 @@ class Node:
     
     def is_leaf(self) -> bool:
         return len(self.children) == 0
+
+    def clear(self):
+        self.parent = None
+        self.children = []
+        self.visits = 0
+        self.value = 0
+        self.depth = 0
