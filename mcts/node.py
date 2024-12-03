@@ -7,17 +7,29 @@ import random
 
 class Context:
     def __init__(self,
-                 key: Literal["root", "reasoning", "rag", "gen", "refine", "terminate"],
-                 content: str = ""
+                 key: Literal["root", "reasoning", "search", "gen_idea", "refine_idea", "terminate"],
+                 content: str = "",
+                 observation: str | None = None
                  ):
         self.key = key
         self.content = content
-        
-    def __str__(self):
+        self.observation = observation
+    
+    @property
+    def value(self) -> str:
         return (
             f"[{self.key}]\n"
             f"{self.content}\n"
         )
+    
+    def __str__(self):
+        string = self.value
+        if self.observation:
+            string += (
+                "[observation]\n",
+                f"{self.observation}\n"
+            )
+        return string
 
 def root_node() -> Context:
     return Context(key='root')
@@ -34,21 +46,21 @@ class Node:
         self.reflection = ""
         self.test_feedback = ""
 
-    def uct(self, exploration_weight=1.0):
+    def uct(self, exploration_weight):
         if self.visits == 0:
             return float('inf')
         return (self.value / self.visits) + exploration_weight * math.sqrt(math.log(self.parent.visits) / self.visits)
 
-    def best_child(self) -> 'Node':
+    def best_child(self, exploration_weight: float = 1.0) -> 'Node':
         if not self.children:
             return None
-        return max(self.children, key=lambda child: child.uct())
+        return max(self.children, key=lambda child: child.uct(exploration_weight))
     
-    def epsilon_sample(self, epsilon: float = 0.05) -> 'Node':
+    def epsilon_sample(self, epsilon: float = 0.05, explaration_weight: float = 1.0) -> 'Node':
         if not self.children:
             return None
         if random.random() < 1 - epsilon:
-            return self.best_child()
+            return self.best_child(exploration_weight=explaration_weight)
         return random.choice(self.children)
 
     def update(self, reward: float):
@@ -63,4 +75,4 @@ class Node:
         self.children = []
         self.visits = 0
         self.value = 0
-        self.depth = 0
+        # self.depth = 0

@@ -10,6 +10,12 @@ class Rewarder(ABC):
     def get_reward(self, contexts: List[Context], *args, **kwargs) -> float:
         pass
 
+class SciRewarder(Rewarder):
+    def __init__(self):
+        super().__init__()
+    
+    def get_reward(self, contexts, *args, **kwargs):
+        pass
 
 class TestRewarder(Rewarder):
     def __init__(self):

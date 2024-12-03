@@ -1,3 +1,4 @@
+import random
 from typing import (
     Dict, List, Literal,
     Callable
@@ -16,12 +17,14 @@ class MCTSRunner:
                  generator: Generator,
                  rewarder: Rewarder,
                  sampling_method: Literal["best", "epsilon", "v-epsilon"] = "best",
+                 exploration_wright: float = 1.0,
                  *args, **kwargs
                  ):
         self.root = root
         self.generator = generator
         self.rewarder = rewarder
         self.sampling_method = sampling_method
+        self.exploration_wright = exploration_wright
         self.best_rollout = None
         self.pre_contexts = []
         if self.sampling_method in ["epsilon", "v-epsilon"]:
@@ -63,6 +66,7 @@ class MCTSRunner:
         return rollout
     
     def __run_one_trial(self,
+            trial_id: int,
             n_rollouts: int,
             n_exp: int,
             terminal_func: Callable
@@ -73,18 +77,18 @@ class MCTSRunner:
             contexts = self.pre_contexts[:]
             while not current_node.is_leaf():
                 if self.sampling_method == "best":
-                    current_node = current_node.best_child() # select
+                    current_node = current_node.best_child(exploration_weight=self.exploration_wright) # select
                 elif self.sampling_method == "epsilon":
-                    current_node = current_node.epsilon_sample(epsilon=self.epsilon)
+                    current_node = current_node.epsilon_sample(epsilon=self.epsilon, explaration_weight=self.exploration_wright)
                 elif self.sampling_method == "v-epsilon":
-                    current_node = current_node.epsilon_sample(epsilon=self.epsilon / self.root.visits)
+                    current_node = current_node.epsilon_sample(epsilon=self.epsilon / self.root.visits, explaration_weight=self.exploration_wright)
                 if current_node != self.root:
                     contexts.append(current_node.context)
             if terminal_func(contexts):
                 return
             if current_node.visits > 0 or current_node == self.root:
                 self.__expand(current_node=current_node, contexts=contexts, n_exp=n_exp) # expand
-                current_node = current_node.children[0]
+                current_node = random.choice(current_node.children)
             rollout = self.__rollout(contexts=contexts, terminal_func=terminal_func) # rollout
             reward = self.rewarder.get_reward(rollout)
             if self.best_rollout is None or self.best_rollout["reward"] < reward:
@@ -94,7 +98,7 @@ class MCTSRunner:
                 }
             self.__backprop(leaf_node=current_node, reward=reward) # back propagation
             cnt_rollouts += 1
-            print(f"rollout {cnt_rollouts} was over, current best value : {self.best_rollout['reward']}")
+            print(f"trial {trial_id}: rollout {cnt_rollouts} was over, current best value : {self.best_rollout['reward']}")
             
     
     def __next_step(self) -> bool:
@@ -113,8 +117,8 @@ class MCTSRunner:
             ):
         cnt_trials = 0
         while n_trials < 0 or cnt_trials < n_trials:
-            print(f"trial {cnt_trials}:")
             self.__run_one_trial(
+                trial_id=cnt_trials,
                 n_rollouts=n_rollouts,
                 n_exp=n_exp,
                 terminal_func=terminal_func
@@ -123,6 +127,6 @@ class MCTSRunner:
                 # terminal node
                 print(f"all trials were over, best value = {self.best_rollout['reward']}")
                 break
+            print(f"trial {cnt_trials} was over, next step:\n{self.root.context}")
             cnt_trials += 1
-            print(f"next step:\n{self.root.context}")
         
