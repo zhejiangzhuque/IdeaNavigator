@@ -8,6 +8,9 @@ from mcts.node import (
     Context
 )
 from .general import LLMAgent
+from .feedbacker import (
+    SimpleFeedbacker
+)
 
 class Generator(ABC):
     def __init__(self):
@@ -22,7 +25,7 @@ class SciGenerator(Generator):
                  api_key: str,
                  base_url: str,
                  task: str,
-                 model: str = "gpt-4o"
+                 model: str = "gpt-4o",
                  ):
         super().__init__()
         config_path = Path("agents") / "prompts" / "sci-generator.yml"
@@ -35,13 +38,23 @@ class SciGenerator(Generator):
             model=model,
             sys_prompt=f"{sys_prompt}\n\nYour research topic is: {task}"
         )
+        self.feedbacker = SimpleFeedbacker(
+            base_url=base_url,
+            api_key=api_key
+        )
 
     def generate(self, contexts, *args, **kwargs) -> Context:
-        return self.agent.generate(
+        context = self.agent.generate(
             contexts=contexts,
             *args,
             **kwargs
         )
+        if context.key == "search":
+            feedback = self.feedbacker.feedback(
+                contexts=[context]
+            )
+            context.observation = feedback
+        return context
 
 class TestGenerator(Generator):
     def __init__(self):

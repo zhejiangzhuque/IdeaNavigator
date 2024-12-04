@@ -20,7 +20,7 @@ class Feedbacker(ABC):
     def feedback(self,
                  contexts: List[Context],
                  *args, **kwargs
-                 ):
+                 ) -> str:
         pass
 
 class SimpleFeedbacker(Feedbacker):

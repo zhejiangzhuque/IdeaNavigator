@@ -26,7 +26,7 @@ class Context:
         string = self.value
         if self.observation:
             string += (
-                "[observation]\n",
+                "[observation]\n"
                 f"{self.observation}\n"
             )
         return string

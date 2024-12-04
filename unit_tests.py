@@ -17,6 +17,7 @@ from agents.feedbacker import (
     SimpleFeedbacker
 )
 from agents.rewarder import (
+    SciRewarder,
     TestRewarder
 )
 from rag.general import (
@@ -66,12 +67,43 @@ def sci_generator():
         )
         print(gen_context)
         contexts.append(gen_context)
-        if gen_context.key == "search":
-            gen_context.observation = feedbacker.feedback(contexts=contexts)
-            print(f"[result]\n{gen_context.observation}")
         if gen_context.key == "gen_idea":
             break
+    rewarder = SciRewarder(
+        base_url=base_url,
+        api_key=api_key,
+        model="gpt-4o"
+    )
+    reward, judgments = rewarder.get_reward(idea=contexts[-1].content, topic=task)
+    print(judgments, reward, sep='\n')
 
+def mcts_idea_gen():
+    topic = "Generated some scientific research idea related to language model compression"
+    generator = SciGenerator(
+        api_key=api_key,
+        base_url=base_url,
+        task=topic,
+        model='gpt-4o'
+    )
+    rewarder = SciRewarder(
+        base_url=base_url,
+        api_key=api_key,
+        model="gpt-4o",
+        topic=topic
+    )
+    runner = MCTSRunner(
+        root=Node(context=root_node()),
+        generator=generator,
+        rewarder=rewarder,
+        sampling_method='best',
+        exploration_wright=1.0
+    )
+    runner.run(
+        n_rollouts=10,
+        n_exp=3,
+        terminal_func=lambda contexts: len(contexts) > 0 and contexts[-1].key == "gen_idea"
+    )
+    
 
 def main():
     parser = ArgumentParser()

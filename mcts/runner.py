@@ -7,6 +7,9 @@ from .node import Context, Node
 from agents.generator import (
     Generator
 )
+from agents.feedbacker import (
+    Feedbacker
+)
 from agents.rewarder import (
     Rewarder
 )
@@ -34,7 +37,7 @@ class MCTSRunner:
                  current_node: Node,
                  contexts: List[Context],
                  n_exp: int
-                 ) -> Context:
+                 ):
         for i in range(n_exp):
             child_context = self.generator.generate(
                 contexts=contexts
@@ -90,7 +93,7 @@ class MCTSRunner:
                 self.__expand(current_node=current_node, contexts=contexts, n_exp=n_exp) # expand
                 current_node = random.choice(current_node.children)
             rollout = self.__rollout(contexts=contexts, terminal_func=terminal_func) # rollout
-            reward = self.rewarder.get_reward(rollout)
+            reward, _ = self.rewarder.get_reward(rollout)
             if self.best_rollout is None or self.best_rollout["reward"] < reward:
                 self.best_rollout = {
                     "rollout": rollout,
