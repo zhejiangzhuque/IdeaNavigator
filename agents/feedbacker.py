@@ -3,7 +3,7 @@ from typing import (
 )
 from abc import ABC, abstractmethod
 from .general import (
-    LLMAgent
+    LLMEngine
 )
 from mcts.node import (
     Context

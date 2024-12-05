@@ -46,7 +46,7 @@ class Node:
         self.reflection = ""
         self.test_feedback = ""
 
-    def uct(self, exploration_weight):
+    def uct(self, exploration_weight: float = 1.0):
         if self.visits == 0:
             return float('inf')
         return (self.value / self.visits) + exploration_weight * math.sqrt(math.log(self.parent.visits) / self.visits)

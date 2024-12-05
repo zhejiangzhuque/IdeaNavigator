@@ -3,7 +3,6 @@ import yaml
 import json
 from pathlib import Path
 from abc import ABC, abstractmethod
-from openai import Client
 from typing import (
     List,
     Dict,
@@ -13,7 +12,7 @@ from mcts.node import (
     Context
 )
 from agents.general import (
-    LLMAgent,
+    LLMEngine,
     PromptTemplate
 )
 
@@ -25,6 +24,8 @@ class Rewarder(ABC):
     def get_reward(self, contexts: List[Context], *args, **kwargs) -> Tuple[float, Dict | None]:
         pass
 
+
+
 class SciRewarder(Rewarder):
     def __init__(self,
                  base_url: str,
@@ -35,33 +36,26 @@ class SciRewarder(Rewarder):
         config_path = Path("agents") / "prompts" / "sci-rewarder.yml"
         with open(config_path) as f:
             prompts = yaml.safe_load(f)
-            self.sys_prompt = PromptTemplate(
+            sys_prompt = PromptTemplate(
                 template=prompts["sys_prompt"],
                 parameters={
                     "topic": topic,
                     "idea": ""
                 }
             )
-        self.client = Client(
+        self.engine = LLMEngine(
+            api_key=api_key,
             base_url=base_url,
-            api_key=api_key
+            model=model,
+            sys_prompt=sys_prompt
         )
-        self.model = model
     
     def get_reward(self,
                    contexts: List[Context],
                    *args, **kwargs) -> Tuple[float, Dict | None]:
         idea = contexts[-1].content
-        self.sys_prompt.parameters["idea"] = idea
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": self.sys_prompt.value
-                }
-            ]
-        ).choices[0].message.content
+        self.engine.sys_prompt.parameters["idea"] = idea
+        response = self.engine.gen_from_prompt()[0]
         jud_match = re.match(pattern=r"```json(.*?)```", string=response, flags=re.DOTALL)
         if not jud_match:
             # TODO

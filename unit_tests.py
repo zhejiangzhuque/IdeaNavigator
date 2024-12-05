@@ -9,6 +9,9 @@ from mcts.node import (
 from mcts.runner import (
     MCTSRunner
 )
+from agents.general import (
+    LLMEngine
+)
 from agents.generator import (
     TestGenerator,
     SciGenerator
@@ -22,6 +25,9 @@ from agents.rewarder import (
 )
 from rag.general import (
     TestRAG
+)
+from utils.log import (
+    logger
 )
 
 load_dotenv(find_dotenv())
@@ -56,15 +62,11 @@ def sci_generator():
         task=task,
         model='gpt-4o'
     )
-    feedbacker = SimpleFeedbacker(
-        base_url=base_url,
-        api_key=api_key
-    )
     contexts = []
     while True:
         gen_context = generator.generate(
             contexts=contexts
-        )
+        )[0]
         print(gen_context)
         contexts.append(gen_context)
         if gen_context.key == "gen_idea":
@@ -72,9 +74,10 @@ def sci_generator():
     rewarder = SciRewarder(
         base_url=base_url,
         api_key=api_key,
-        model="gpt-4o"
+        model="gpt-4o",
+        topic=task
     )
-    reward, judgments = rewarder.get_reward(idea=contexts[-1].content, topic=task)
+    reward, judgments = rewarder.get_reward(contexts=contexts)
     print(judgments, reward, sep='\n')
 
 def mcts_idea_gen():
@@ -103,7 +106,22 @@ def mcts_idea_gen():
         n_exp=3,
         terminal_func=lambda contexts: len(contexts) > 0 and contexts[-1].key == "gen_idea"
     )
-    
+
+def multi_gen():
+    engine = LLMEngine(
+        api_key=api_key,
+        base_url=base_url,
+        model='gpt-4o',
+        sys_prompt="You are an AI assistant."
+    )
+    results = engine.gen_from_prompt(prompt="Tell me a short joke.", n_choices=3)
+    for idx, result in enumerate(results):
+        print(f"choice {idx}: {result}")
+
+def test_logger():
+    logger.debug(msg="This is a debugging message.")
+    logger.info(msg="This is an information.")
+    logger.critical(msg="This is a critical message.")
 
 def main():
     parser = ArgumentParser()

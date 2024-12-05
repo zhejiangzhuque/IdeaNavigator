@@ -13,7 +13,9 @@ from agents.feedbacker import (
 from agents.rewarder import (
     Rewarder
 )
-
+from utils.log import (
+    logger
+)
 class MCTSRunner:
     def __init__(self,
                  root: Node,
@@ -38,10 +40,16 @@ class MCTSRunner:
                  contexts: List[Context],
                  n_exp: int
                  ):
+        exp_contexts = self.generator.generate(
+            contexts=contexts,
+            n_choices=n_exp
+        )
+        msg = "expanded nodes :\n"
+        for exp_context in exp_contexts:
+            msg += (str(exp_context) + "\n\n")
+        logger.debug(msg=msg)
         for i in range(n_exp):
-            child_context = self.generator.generate(
-                contexts=contexts
-            )
+            child_context = exp_contexts[i]
             child_node = Node(
                 context=child_context,
                 parent=current_node,
@@ -54,17 +62,21 @@ class MCTSRunner:
                    reward: float
                    ):
         node = leaf_node
+        logger.debug(msg="backpropagation starting...")
         while node:
             node.update(reward=reward)
             node = node.parent
+        logger.debug(msg="backpropagation was over.")
     
     def __rollout(self,
                   contexts: List[Context],
                   terminal_func: Callable
                   ) -> List[Context]:
         rollout = contexts[:]
+        logger.debug(msg="rollout starting...")
         while not terminal_func(rollout):
-            gen_context = self.generator.generate(contexts=rollout)
+            gen_context = self.generator.generate(contexts=rollout)[0]
+            logger.debug(msg=f"next step : {gen_context}")
             rollout.append(gen_context)
         return rollout
     
@@ -93,7 +105,9 @@ class MCTSRunner:
                 self.__expand(current_node=current_node, contexts=contexts, n_exp=n_exp) # expand
                 current_node = random.choice(current_node.children)
             rollout = self.__rollout(contexts=contexts, terminal_func=terminal_func) # rollout
-            reward, _ = self.rewarder.get_reward(rollout)
+            reward, judgment = self.rewarder.get_reward(rollout)
+            logger.debug(msg=f"reward = {reward}")
+            logger.debug(msg=f"specific judgment:\n{judgment}")
             if self.best_rollout is None or self.best_rollout["reward"] < reward:
                 self.best_rollout = {
                     "rollout": rollout,
@@ -101,10 +115,18 @@ class MCTSRunner:
                 }
             self.__backprop(leaf_node=current_node, reward=reward) # back propagation
             cnt_rollouts += 1
-            print(f"trial {trial_id}: rollout {cnt_rollouts} was over, current best value : {self.best_rollout['reward']}")
+            logger.critical(f"trial {trial_id}: rollout {cnt_rollouts} was over, current best value : {self.best_rollout['reward']}")
             
     
     def __next_step(self) -> bool:
+        msg = "children nodes :"
+        for idx, child in enumerate(self.root.children):
+            msg += (
+                f"child-{idx}: [{child.context.key}]\n"
+                f"{child.context.content[:50]}...\n"
+                f"UCT = {child.uct()}\n\n"
+            )
+        logger.debug(msg=msg)
         self.root = self.root.best_child()
         if self.root is None:
             return False
@@ -128,8 +150,8 @@ class MCTSRunner:
             )
             if not self.__next_step():
                 # terminal node
-                print(f"all trials were over, best value = {self.best_rollout['reward']}")
+                logger.critical(f"all trials were over, best value = {self.best_rollout['reward']}")
                 break
-            print(f"trial {cnt_trials} was over, next step:\n{self.root.context}")
+            logger.critical(f"trial {cnt_trials} was over, next step:\n{self.root.context}")
             cnt_trials += 1
         
