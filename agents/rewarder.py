@@ -1,3 +1,5 @@
+import asyncio
+import random
 import re
 import yaml
 import json
@@ -24,7 +26,92 @@ class Rewarder(ABC):
     def get_reward(self, contexts: List[Context], *args, **kwargs) -> Tuple[float, Dict | None]:
         pass
 
+class IdeaArena(Rewarder):
+    def __init__(self,
+                 base_url: str,
+                 api_key: str,
+                 topic: str,
+                 model: str = "gpt-4o"
+                 ):
+        config_path = Path("agents") / "prompts" / "idea-arena.yml"
+        with open(config_path) as f:
+            prompts = yaml.safe_load(f)
+            sys_prompt = PromptTemplate(
+                template=prompts["sys_prompt"],
+                parameters={
+                    "topic": topic,
+                    "idea_A": "",
+                    "idea_B": ""
+                }
+            )
+        self.engine = LLMEngine(
+            api_key=api_key,
+            base_url=base_url,
+            model=model,
+            sys_prompt=sys_prompt
+        )
+        self.idea_db = []
+    
+    async def combat(self,
+               idea1: str,
+               idea2: str,
+               alpha: float = 1.0
+               ) -> bool:
+        idea_idx = random.randint(0, 1)
+        if idea_idx == 0:
+            self.engine.sys_prompt.parameters["idea_A"] = idea1
+            self.engine.sys_prompt.parameters["idea_B"] = idea2
+        else:
+            self.engine.sys_prompt.parameters["idea_A"] = idea2
+            self.engine.sys_prompt.parameters["idea_B"] = idea1
+        try:
+            response = (await self.engine.async_gen_from_prompt())[0]
+            response = re.search(pattern=r"```json(.*?)```", string=response, flags=re.S).group(1)
+            response = json.loads(response)
+            s_a, s_b = 0, 0
+            for key in [
+                "novelty",
+                "feasibility",
+                "clarity",
+                "impact",
+                "relevance"
+            ]:
+                s_a += response[key]["scores"]["A"] + alpha * (response[key]["better"] == "A")
+                s_b += response[key]["scores"]["B"] + alpha * (response[key]["better"] == "B")
+            if idea_idx == 0 and s_a > s_b or idea_idx == 1 and s_a < s_b:
+                return True
+            else:
+                return False
+        except Exception as e:
+            # tb = e.__traceback__
+            # while tb:
+            #     print(f"Error in {tb.tb_frame.f_code.co_filename}, line {tb.tb_lineno} : {e}")
+            #     tb = tb.tb_next
+            return await self.combat(
+                idea1=idea1,
+                idea2=idea2,
+                alpha=alpha
+            )
+    
+    def get_reward(self, contexts, *args, **kwargs) -> Tuple[float, Dict | None]:
+        idea = contexts[-1].content
+        win_cnt = 0
+        coro_list = []
+        for other_idea in self.idea_db:
+            coro = self.combat(idea, other_idea)
+            coro_list.append(coro)
+        responses, _ = asyncio.run(asyncio.wait(coro_list, timeout=None))
+        for response in responses:
+            if response.result():
+                win_cnt += 1
 
+        return win_cnt / (len(self.idea_db) + 1) * 10, None
+
+    def add_idea(self, idea: str):
+        self.idea_db.append(idea)
+    
+    def clear_all(self):
+        self.idea_db = []
 
 class SciRewarder(Rewarder):
     def __init__(self,

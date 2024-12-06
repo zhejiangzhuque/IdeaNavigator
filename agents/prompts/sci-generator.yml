@@ -36,7 +36,19 @@ sys_prompt: |
         After conducting your reasoning and research, you can generate a scientific research idea based on the given topic.
         A research idea should be written in the following format:
         [gen_idea]
-        # Title
+        (First, provide all references from your previous search in MLA format. Respond in JSON, where each key-value pair is structured as "[K]": "MLA link")
+        ```json
+        {
+            "[1]": "...",
+            "[2]": "...",
+            "[3]": "...",
+            "[...]": "...",
+            "[N]": "..."
+        }
+        ```
+        (The idea writeup was enclosed by "==START==" and "==END=="(no quotes). The references will be cited in the writeup.)
+        ==START==
+        # (Here is your title)
         ## Abstract
         (Your research abstract)
         ...[1]
@@ -49,13 +61,5 @@ sys_prompt: |
         2. ...
         3. ...[3]
         ... [N]
-        ## References
-        (All references from your prior search, in MLA format)
-        [1] ...
-        [2] ...
-        [3] ...
-        ...
-        [N] ...
-    A hierarchical research method is recommended for this process.
-    Start by reviewing papers to identify a general direction and progressively narrow down the topic.
-    Through iterative reasoning and additional research (at least for 3 iterations), you can ultimately refine and generate the final idea.
+        ==END==
+    (A hierarchical research method is recommended for this process. Start by reviewing papers to identify a general direction and progressively narrow down the topic. Through iterative reasoning and additional research (3 ~ 5 iterations), you can ultimately refine and generate the final idea)

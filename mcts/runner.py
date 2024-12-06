@@ -11,7 +11,8 @@ from agents.feedbacker import (
     Feedbacker
 )
 from agents.rewarder import (
-    Rewarder
+    Rewarder,
+    IdeaArena
 )
 from utils.log import (
     logger
@@ -84,9 +85,18 @@ class MCTSRunner:
             trial_id: int,
             n_rollouts: int,
             n_exp: int,
-            terminal_func: Callable
+            terminal_func: Callable,
+            *args, **kwargs
             ):
         cnt_rollouts = 0
+        if isinstance(self.rewarder, IdeaArena):
+            logger.critical("Initializing the idea DB...")
+            # self.rewarder.clear_all()
+            init_idea_cnt = kwargs.get("init_idea_cnt", 4)
+            for i in range(init_idea_cnt):
+                idea = self.__rollout(contexts=self.pre_contexts[:], terminal_func=terminal_func)[-1].content
+                self.rewarder.add_idea(idea)
+            logger.critical(f"{init_idea_cnt} initial ideas were generated.")
         while cnt_rollouts < n_rollouts:
             current_node = self.root
             contexts = self.pre_contexts[:]
@@ -100,14 +110,21 @@ class MCTSRunner:
                 if current_node != self.root:
                     contexts.append(current_node.context)
             if terminal_func(contexts):
-                return
+                if self.sampling_method == "best":
+                    return
+                cnt_rollouts += 1
+                logger.critical(f"trial {trial_id}: rollout {cnt_rollouts} was over, current best value : {self.best_rollout['reward']}")
+                continue
             if current_node.visits > 0 or current_node == self.root:
                 self.__expand(current_node=current_node, contexts=contexts, n_exp=n_exp) # expand
                 current_node = random.choice(current_node.children)
             rollout = self.__rollout(contexts=contexts, terminal_func=terminal_func) # rollout
             reward, judgment = self.rewarder.get_reward(rollout)
             logger.debug(msg=f"reward = {reward}")
-            logger.debug(msg=f"specific judgment:\n{judgment}")
+            if judgment:
+                logger.debug(msg=f"specific judgment:\n{judgment}")
+            if isinstance(self.rewarder, IdeaArena):
+                self.rewarder.add_idea(rollout[-1].content)
             if self.best_rollout is None or self.best_rollout["reward"] < reward:
                 self.best_rollout = {
                     "rollout": rollout,
@@ -119,7 +136,7 @@ class MCTSRunner:
             
     
     def __next_step(self) -> bool:
-        msg = "children nodes :"
+        msg = "children nodes :\n"
         for idx, child in enumerate(self.root.children):
             msg += (
                 f"child-{idx}: [{child.context.key}]\n"

@@ -1,6 +1,10 @@
+import json
 import re
 from typing import List, Dict
-from openai import Client
+from openai import (
+    Client,
+    AsyncOpenAI
+)
 from mcts.node import (
     Context
 )
@@ -31,6 +35,20 @@ class PromatParser:
         key, content = match_key.group(1), match_content.group(1).strip()
         context = Context(key=key, content=content)
         return context
+    
+    @staticmethod
+    def format_idea(idea: str) -> str | None:
+        refs_match = re.search(pattern=r"```json(.*?)```", string=idea, flags=re.S)
+        if refs_match is None:
+            return None
+        content_match = re.search(pattern=r"==START==(.*?)==END==", string=idea, flags=re.DOTALL)
+        if content_match is None:
+            return None
+        content = content_match.group(1).strip()
+        refs_json =  json.loads(refs_match.group(1))
+        refs = "## References\n" + "\n".join([f"{idx} {content}" for idx, content in refs_json.items()])
+        
+        return content + "\n\n" + refs
 
 
 class LLMEngine:
@@ -44,8 +62,44 @@ class LLMEngine:
             api_key=api_key,
             base_url=base_url
         )
+        self.async_client = AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url
+        )
         self.model = model
         self.sys_prompt = sys_prompt
+    
+    async def async_gen_from_prompt(self,
+                                    prompt: PromptTemplate | str | None = None,
+                                    n_choices: int = 1,
+                                    *args, **kwargs
+                                    ) -> List[str]:
+        sys_prompt = self.sys_prompt if isinstance(self.sys_prompt, str) else self.sys_prompt.value
+        messages = [
+            {
+                "role": "system",
+                "content": sys_prompt
+            }
+        ]
+        if prompt is not None:
+            prompt_content = prompt if isinstance(prompt, str) else prompt.value
+            messages.append(
+                {
+                    "role": "user",
+                    "content": prompt_content
+                }
+            )
+        responses = await self.async_client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            n=n_choices,
+            *args, **kwargs
+        )
+        results = []
+        for i in range(n_choices):
+            response = responses.choices[i].message.content
+            results.append(response)
+        return results
     
     def gen_from_prompt(self,
                         prompt: PromptTemplate | str | None = None,
