@@ -3,8 +3,7 @@ from dotenv import find_dotenv, load_dotenv
 from argparse import ArgumentParser
 from mcts.node import (
     Node,
-    Context,
-    root_node
+    Context
 )
 from mcts.runner import (
     MCTSRunner
@@ -38,9 +37,7 @@ def mcts_demo():
     generator = TestGenerator()
     rewarder = TestRewarder()
     runner = MCTSRunner(
-        root=Node(
-            context=root_node()
-        ),
+        root=Node.root_node(),
         generator=generator,
         rewarder=rewarder,
         sampling_method="best",
@@ -92,7 +89,7 @@ def mcts_idea_gen():
         topic=topic
     )
     runner = MCTSRunner(
-        root=Node(context=root_node()),
+        root=Node.root_node(),
         generator=generator,
         rewarder=rewarder,
         sampling_method='best',

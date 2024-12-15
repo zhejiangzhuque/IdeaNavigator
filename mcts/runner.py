@@ -33,6 +33,7 @@ class MCTSRunner:
         self.exploration_wright = exploration_wright
         self.best_rollout = None
         self.pre_contexts = []
+        self.rollout_history = []
         if self.sampling_method in ["epsilon", "v-epsilon"]:
             self.epsilon = kwargs.get("epsilon", 0.2)
     
@@ -91,7 +92,7 @@ class MCTSRunner:
         cnt_rollouts = 0
         if isinstance(self.rewarder, IdeaArena):
             logger.critical("Initializing the idea DB...")
-            # self.rewarder.clear_all()
+            self.rewarder.clear_all()
             init_idea_cnt = kwargs.get("init_idea_cnt", 4)
             for i in range(init_idea_cnt):
                 idea = self.__rollout(contexts=self.pre_contexts[:], terminal_func=terminal_func)[-1].content

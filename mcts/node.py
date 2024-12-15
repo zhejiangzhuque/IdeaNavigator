@@ -31,10 +31,6 @@ class Context:
             )
         return string
 
-def root_node() -> Context:
-    return Context(key='root')
-
-
 class Node:
     def __init__(self, context: Context, parent: 'Node' = None, depth: int = 0):
         self.parent = parent
@@ -76,3 +72,8 @@ class Node:
         self.visits = 0
         self.value = 0
         # self.depth = 0
+
+    @staticmethod
+    def root_node() -> 'Node':
+        ctx = Context(key='root')
+        return Node(context=ctx)
