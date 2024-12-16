@@ -8,7 +8,6 @@
   </p>
 </div>
 
-
 #### Quick Start
 
 **Cloning the repo**
@@ -27,15 +26,12 @@ conda activate inno_tree
 **Running**
 
 ```bash
-python run.py --topic "Generate some scientific research idea based on multi-agent system" \
+python run.py --topic "Generate one scientific research idea based on multi-agent system" \
     --n_rollouts 10 \
     --n_exp 4 \
     --model "gpt-4o" \
     --sampling_method "best"
 ```
-
-
-
 
 #### Todo List
 
