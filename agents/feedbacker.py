@@ -25,14 +25,10 @@ class Feedbacker(ABC):
 
 class SimpleFeedbacker(Feedbacker):
     def __init__(self,
-                 base_url: str,
-                 api_key: str
+                 engine: LLMEngine
                  ):
         super().__init__()
-        self.rag = TestRAG(
-            base_url=base_url,
-            api_key=api_key
-        )
+        self.rag = TestRAG(engine)
     
     def feedback(self, contexts, *args, **kwargs) -> str:
         assert len(contexts) > 0 and contexts[-1].key == "search"

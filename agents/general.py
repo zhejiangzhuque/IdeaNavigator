@@ -55,8 +55,7 @@ class LLMEngine:
     def __init__(self,
                  api_key: str,
                  base_url: str,
-                 model: str = "gpt-4o",
-                 sys_prompt: str | PromptTemplate = "You are an AI assistant.",
+                 model: str = "gpt-4o"
                  ):
         self.client = Client(
             api_key=api_key,
@@ -67,14 +66,14 @@ class LLMEngine:
             base_url=base_url
         )
         self.model = model
-        self.sys_prompt = sys_prompt
     
     async def async_gen_from_prompt(self,
+                                    sys_prompt: str | PromptTemplate = "You are an AI assistant.",
                                     prompt: PromptTemplate | str | None = None,
                                     n_choices: int = 1,
                                     *args, **kwargs
                                     ) -> List[str]:
-        sys_prompt = self.sys_prompt if isinstance(self.sys_prompt, str) else self.sys_prompt.value
+        sys_prompt = sys_prompt if isinstance(sys_prompt, str) else sys_prompt.value
         messages = [
             {
                 "role": "system",
@@ -102,11 +101,12 @@ class LLMEngine:
         return results
     
     def gen_from_prompt(self,
+                        sys_prompt: str | PromptTemplate = "You are an AI assistant.",
                         prompt: PromptTemplate | str | None = None,
                         n_choices: int = 1,
                         *args, **kwargs
                          ) -> List[str]:
-        sys_prompt = self.sys_prompt if isinstance(self.sys_prompt, str) else self.sys_prompt.value
+        sys_prompt = sys_prompt if isinstance(sys_prompt, str) else sys_prompt.value
         messages = [
             {
                 "role": "system",
@@ -135,10 +135,11 @@ class LLMEngine:
     
     def gen_from_contexts(self,
                           contexts: List[Context],
+                          sys_prompt: str | PromptTemplate = "You are an AI assistant.",
                           n_choices: int = 1,
                           *args, **kwargs
                           ) -> List[Context]:
-        sys_prompt = self.sys_prompt if isinstance(self.sys_prompt, str) else self.sys_prompt.value
+        sys_prompt = sys_prompt if isinstance(sys_prompt, str) else sys_prompt.value
         messages = [
             {
                 "role": "system",

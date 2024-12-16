@@ -19,9 +19,9 @@ from utils.log import (
 )
 class MCTSRunner:
     def __init__(self,
-                 root: Node,
                  generator: Generator,
                  rewarder: Rewarder,
+                 root: Node = Node.root_node(),
                  sampling_method: Literal["best", "epsilon", "v-epsilon"] = "best",
                  exploration_wright: float = 1.0,
                  *args, **kwargs
@@ -77,9 +77,11 @@ class MCTSRunner:
         rollout = contexts[:]
         logger.debug(msg="rollout starting...")
         while not terminal_func(rollout):
+            logger.debug(msg="generating next step...")
             gen_context = self.generator.generate(contexts=rollout)[0]
             logger.debug(msg=f"next step : {gen_context}")
             rollout.append(gen_context)
+        self.rollout_history.append(rollout[:])
         return rollout
     
     def __run_one_trial(self,

@@ -9,8 +9,37 @@
 </div>
 
 
+#### Quick Start
+
+**Cloning the repo**
+
+```bash
+git clone https://github.com/Goer17/InnoTree.git
+```
+
+**Downloading the dependencies**
+
+```bash
+conda create -n inno_tree python=3.10 -y && \
+conda activate inno_tree
+```
+
+**Running**
+
+```bash
+python run.py --topic "Generate some scientific research idea based on multi-agent system" \
+    --n_rollouts 10 \
+    --n_exp 4 \
+    --model "gpt-4o" \
+    --sampling_method "best"
+```
+
+
+
 
 #### Todo List
 
 - [ ] Implementing RAG interface
+- [ ] More Action Node
 - [ ] Benchmarking
+- [ ] MCTS Visualization

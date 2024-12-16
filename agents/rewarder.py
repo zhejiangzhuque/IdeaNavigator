@@ -28,10 +28,8 @@ class Rewarder(ABC):
 
 class IdeaArena(Rewarder):
     def __init__(self,
-                 base_url: str,
-                 api_key: str,
-                 topic: str,
-                 model: str = "gpt-4o"
+                 engine: LLMEngine,
+                 topic: str
                  ):
         config_path = Path("agents") / "prompts" / "idea-arena.yml"
         with open(config_path) as f:
@@ -44,12 +42,8 @@ class IdeaArena(Rewarder):
                     "idea_B": ""
                 }
             )
-        self.engine = LLMEngine(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            sys_prompt=sys_prompt
-        )
+        self.engine = engine
+        self.sys_prompt = sys_prompt
         self.idea_db = []
     
     async def combat(self,
@@ -59,13 +53,13 @@ class IdeaArena(Rewarder):
                ) -> bool:
         idea_idx = random.randint(0, 1)
         if idea_idx == 0:
-            self.engine.sys_prompt.parameters["idea_A"] = idea1
-            self.engine.sys_prompt.parameters["idea_B"] = idea2
+            self.sys_prompt.parameters["idea_A"] = idea1
+            self.sys_prompt.parameters["idea_B"] = idea2
         else:
-            self.engine.sys_prompt.parameters["idea_A"] = idea2
-            self.engine.sys_prompt.parameters["idea_B"] = idea1
+            self.sys_prompt.parameters["idea_A"] = idea2
+            self.sys_prompt.parameters["idea_B"] = idea1
         try:
-            response = (await self.engine.async_gen_from_prompt())[0]
+            response = (await self.engine.async_gen_from_prompt(sys_prompt=self.sys_prompt))[0]
             response = re.search(pattern=r"```json(.*?)```", string=response, flags=re.S).group(1)
             response = json.loads(response)
             s_a, s_b = 0, 0
@@ -83,10 +77,6 @@ class IdeaArena(Rewarder):
             else:
                 return False
         except Exception as e:
-            # tb = e.__traceback__
-            # while tb:
-            #     print(f"Error in {tb.tb_frame.f_code.co_filename}, line {tb.tb_lineno} : {e}")
-            #     tb = tb.tb_next
             return await self.combat(
                 idea1=idea1,
                 idea2=idea2,

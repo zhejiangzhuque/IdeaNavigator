@@ -1,11 +1,10 @@
 import os
 from dotenv import find_dotenv, load_dotenv
-from mcts.node import (
-    Node,
-    root_node
-)
 from mcts.runner import (
     MCTSRunner
+)
+from agents.general import (
+    LLMEngine
 )
 from agents.generator import (
     SciGenerator
@@ -13,14 +12,12 @@ from agents.generator import (
 from agents.rewarder import (
     IdeaArena
 )
-from utils.log import (
-    logger
-)
 
 load_dotenv(find_dotenv())
 
 api_key = os.environ["API_KEY"]
 base_url = os.environ["BASE_URL"]
+
 
 def main(opt):
     topic = opt.topic
@@ -29,19 +26,21 @@ def main(opt):
     n_rollouts = opt.n_rollouts
     n_exp = opt.n_exp
     
-    generator = SciGenerator(
+    engine = LLMEngine(
         api_key=api_key,
         base_url=base_url,
-        task=topic,
         model=model
     )
+    
+    generator = SciGenerator(
+        engine=engine,
+        topic=topic
+    )
     rewarder = IdeaArena(
-        base_url=base_url,
-        api_key=api_key,
+        engine=engine,
         topic=topic
     )
     runner = MCTSRunner(
-        root=Node(context=root_node()),
         generator=generator,
         rewarder=rewarder,
         sampling_method=sampling_method,

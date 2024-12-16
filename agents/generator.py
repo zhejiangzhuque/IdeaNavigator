@@ -22,30 +22,23 @@ class Generator(ABC):
 
 class SciGenerator(Generator):
     def __init__(self,
-                 api_key: str,
-                 base_url: str,
-                 task: str,
-                 model: str = "gpt-4o",
+                 engine: LLMEngine,
+                 topic: str
                  ):
         super().__init__()
         config_path = Path("agents") / "prompts" / "sci-generator.yml"
         with open(config_path) as f:
             prompts = yaml.safe_load(f)
             sys_prompt = prompts["sys_prompt"]
-        self.agent = LLMEngine(
-            api_key=api_key,
-            base_url=base_url,
-            model=model,
-            sys_prompt=f"{sys_prompt}\n\nYour research topic is: {task}"
-        )
-        self.feedbacker = SimpleFeedbacker(
-            base_url=base_url,
-            api_key=api_key
-        )
+            sys_prompt=f"{sys_prompt}\n\nYour research topic is: {topic}"
+        self.engine = engine
+        self.sys_prompt = sys_prompt
+        self.feedbacker = SimpleFeedbacker(engine=engine)
 
     def generate(self, contexts, n_choices: int = 1, *args, **kwargs) -> List[Context]:
-        ctx_choices = self.agent.gen_from_contexts(
+        ctx_choices = self.engine.gen_from_contexts(
             contexts=contexts,
+            sys_prompt=self.sys_prompt,
             n_choices=n_choices,
             *args,
             **kwargs
