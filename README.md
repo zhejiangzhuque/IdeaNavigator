@@ -16,12 +16,18 @@
 git clone https://github.com/Goer17/InnoTree.git
 ```
 
+
 **Downloading the dependencies**
 
 ```bash
 conda create -n inno_tree python=3.10 -y && \
 conda activate inno_tree
 ```
+
+```bash
+pip install -r requirements.txt
+```
+
 
 **Running**
 
