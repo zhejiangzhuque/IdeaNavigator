@@ -171,5 +171,10 @@ class LLMEngine:
         for i in range(n_choices):
             result = responses.choices[i].message.content
             context = PromatParser.to_context(result)
-            results.append(context)
-        return results
+            if context is not None:
+                results.append(context)
+        if len(results) == n_choices:
+            return results
+        return results + self.gen_from_contexts(contexts=contexts,
+                                                sys_prompt=sys_prompt,
+                                                n_choices=n_choices - len(results))
