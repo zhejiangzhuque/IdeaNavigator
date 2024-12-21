@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://github.com/goer17/IdeaNavigator">
+  <a href="https://github.com/zhejiangzhuque/InnoTree">
     <img src="assets/logo.png" alt="Logo" width="256" height="256">
   </a>
 <h3 align="center">InnoTree: Integrating MCTS with Language Models for Scientific Idea Generation</h3>
